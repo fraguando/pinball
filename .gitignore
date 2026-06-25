@@ -1,0 +1,12 @@
+# Build output (CMake + fetched dependencies)
+/build/
+
+# Compiled artifacts
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# Generated/test level files at the repo root
+/selftest_board.json
