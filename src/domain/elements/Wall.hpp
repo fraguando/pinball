@@ -12,6 +12,7 @@ public:
     glm::vec3 position() const override { return position_; }
     void setPosition(const glm::vec3& p) override { position_ = p; }
 
+    void rotate(float deltaRadians) override { yaw_ += deltaRadians; }
     bool raycastHit(const Ray& ray, float& t) const override;
     void appendCollisionShapes(std::vector<CollisionShape>& out) const override;
     void appendRenderItems(std::vector<RenderItem>& out) const override;
@@ -21,6 +22,9 @@ public:
     void setYaw(float yaw) { yaw_ = yaw; }
     float yaw() const { return yaw_; }
     void setLength(float l) { length_ = l; }
+
+    // Size + orient the wall to span between two floor points (drag-to-create).
+    void setFromEndpoints(const glm::vec3& a, const glm::vec3& b);
 
 private:
     glm::vec3 position_{0.0f}; // center on the floor (y = base)

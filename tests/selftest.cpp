@@ -19,6 +19,8 @@ void check(bool cond, const char* msg) {
 } // namespace
 
 int main() {
+    std::setvbuf(stdout, nullptr, _IONBF, 0); // unbuffered: survive a crash
+    try {
     using namespace pinball::domain;
 
     // --- Element factory knows every built-in type ---
@@ -80,4 +82,8 @@ int main() {
 
     std::printf("\n%s (%d failure(s))\n", g_failures == 0 ? "ALL PASS" : "FAILED", g_failures);
     return g_failures == 0 ? 0 : 1;
+    } catch (const std::exception& ex) {
+        std::printf("\n[EXCEPTION] %s\n", ex.what());
+        return 2;
+    }
 }

@@ -2,6 +2,7 @@
 
 #include "domain/elements/Flipper.hpp"
 #include "domain/elements/Rail.hpp"
+#include "domain/elements/Wall.hpp"
 
 #include <limits>
 
@@ -81,6 +82,16 @@ void LevelEditor::placeAt(const glm::vec3& worldPoint) {
 void LevelEditor::dragSelectedTo(const glm::vec3& worldPoint) {
     if (!selected_) return;
     selected_->setPosition(glm::vec3(worldPoint.x, selected_->position().y, worldPoint.z));
+}
+
+void LevelEditor::placeWall(const glm::vec3& a, const glm::vec3& b) {
+    auto wall = std::make_unique<Wall>();
+    wall->setFromEndpoints(a, b);
+    selected_ = board_.add(std::move(wall));
+}
+
+void LevelEditor::rotateSelected(float deltaRadians) {
+    if (selected_) selected_->rotate(deltaRadians);
 }
 
 void LevelEditor::confirm() {

@@ -75,10 +75,17 @@ app::InputFrame SdlInput::poll() {
     const Uint8* ks = SDL_GetKeyboardState(nullptr);
     f.leftFlipper = ks[SDL_SCANCODE_LEFT] != 0;
     f.rightFlipper = ks[SDL_SCANCODE_RIGHT] != 0;
+    f.rotateLeft = ks[SDL_SCANCODE_Q] != 0;
+    f.rotateRight = ks[SDL_SCANCODE_E] != 0;
     f.ctrl = (ks[SDL_SCANCODE_LCTRL] | ks[SDL_SCANCODE_RCTRL]) != 0;
+
+    bool space = ks[SDL_SCANCODE_SPACE] != 0;
+    f.launchHeld = space;
+    f.launchReleased = !space && prevSpace_;
 
     prevLeft_ = left;
     prevRight_ = right;
+    prevSpace_ = space;
     prevMouse_ = mouse;
     firstPoll_ = false;
     return f;

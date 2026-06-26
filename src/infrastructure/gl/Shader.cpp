@@ -96,5 +96,8 @@ void Shader::setVec3(const char* name, const glm::vec3& v) const {
 void Shader::setVec2(const char* name, const glm::vec2& v) const {
     glUniform2fv(glGetUniformLocation(program_, name), 1, glm::value_ptr(v));
 }
+void Shader::setFloat(const char* name, float v) const {
+    glUniform1f(glGetUniformLocation(program_, name), v);
+}
 
 } // namespace pinball::gl

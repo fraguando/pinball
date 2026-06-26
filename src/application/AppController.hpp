@@ -63,6 +63,10 @@ private:
     bool cursorValid_{false};
     glm::vec3 cursorWorld_{0.0f};
 
+    // Wall drag-to-size state.
+    bool wallDragging_{false};
+    glm::vec3 wallStart_{0.0f};
+
     std::string status_;
     double statusUntil_{0.0};
 };

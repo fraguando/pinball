@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 namespace pinball::domain {
 
@@ -22,7 +23,16 @@ bool Wall::raycastHit(const Ray& ray, float& t) const {
 void Wall::appendCollisionShapes(std::vector<CollisionShape>& out) const {
     glm::mat3 rot = rotationY(yaw_);
     glm::vec3 half(length_ * 0.5f, height_ * 0.5f, thickness_ * 0.5f);
-    out.push_back(CollisionShape::makeBox(boxCenter(position_, height_), half, rot, 0.45f));
+    out.push_back(CollisionShape::makeBox(boxCenter(position_, height_), half, rot, 0.65f));
+}
+
+void Wall::setFromEndpoints(const glm::vec3& a, const glm::vec3& b) {
+    glm::vec3 mid = 0.5f * (a + b);
+    position_ = glm::vec3(mid.x, 0.0f, mid.z);
+    float dx = b.x - a.x, dz = b.z - a.z;
+    length_ = std::max(0.6f, std::sqrt(dx * dx + dz * dz));
+    // Align the wall's local +X axis (its length) with the drag direction.
+    yaw_ = std::atan2(-dz, dx);
 }
 
 void Wall::appendRenderItems(std::vector<RenderItem>& out) const {

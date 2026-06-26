@@ -5,6 +5,8 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <algorithm>
+
 namespace pinball::gl {
 
 namespace {
@@ -61,29 +63,56 @@ void GlRenderer::setCamera(const glm::mat4& view, const glm::mat4& proj,
     cameraPos_ = cameraPos;
 }
 
-void GlRenderer::draw(const domain::RenderItem& item) {
-    scene_.use();
-    glm::mat4 vp = proj_ * view_;
-    scene_.setMat4("uViewProj", vp);
-    scene_.setVec3("uLightDir", kLightDir);
-    scene_.setVec3("uCameraPos", cameraPos_);
+void GlRenderer::drawMesh(const domain::RenderItem& item) {
     scene_.setMat4("uModel", item.transform);
     scene_.setMat3("uNormalMat", glm::inverseTranspose(glm::mat3(item.transform)));
     scene_.setVec3("uColor", item.color);
+    scene_.setVec3("uEmissive", item.emissive);
+    scene_.setFloat("uAlpha", item.alpha);
     meshes_.get(item.mesh).draw();
+}
+
+void GlRenderer::draw(const domain::RenderItem& item) {
+    scene_.use();
+    scene_.setMat4("uViewProj", proj_ * view_);
+    scene_.setVec3("uLightDir", kLightDir);
+    scene_.setVec3("uCameraPos", cameraPos_);
+    drawMesh(item);
 }
 
 void GlRenderer::draw(const std::vector<domain::RenderItem>& items) {
     scene_.use();
-    glm::mat4 vp = proj_ * view_;
-    scene_.setMat4("uViewProj", vp);
+    scene_.setMat4("uViewProj", proj_ * view_);
     scene_.setVec3("uLightDir", kLightDir);
     scene_.setVec3("uCameraPos", cameraPos_);
+
+    // Opaque pass first (depth writes on).
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    std::vector<const domain::RenderItem*> transparent;
     for (const auto& item : items) {
-        scene_.setMat4("uModel", item.transform);
-        scene_.setMat3("uNormalMat", glm::inverseTranspose(glm::mat3(item.transform)));
-        scene_.setVec3("uColor", item.color);
-        meshes_.get(item.mesh).draw();
+        if (item.alpha >= 0.999f) {
+            drawMesh(item);
+        } else {
+            transparent.push_back(&item);
+        }
+    }
+
+    // Transparent pass: sort back-to-front, blend, don't write depth.
+    if (!transparent.empty()) {
+        std::sort(transparent.begin(), transparent.end(),
+                  [this](const domain::RenderItem* a, const domain::RenderItem* b) {
+                      float da = glm::length(glm::vec3(a->transform[3]) - cameraPos_);
+                      float db = glm::length(glm::vec3(b->transform[3]) - cameraPos_);
+                      return da > db;
+                  });
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+        for (const auto* item : transparent) drawMesh(*item);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
     }
 }
 

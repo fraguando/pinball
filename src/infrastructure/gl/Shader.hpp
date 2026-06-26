@@ -25,6 +25,7 @@ public:
     void setMat3(const char* name, const glm::mat3& m) const;
     void setVec3(const char* name, const glm::vec3& v) const;
     void setVec2(const char* name, const glm::vec2& v) const;
+    void setFloat(const char* name, float v) const;
 
 private:
     GLuint program_{0};

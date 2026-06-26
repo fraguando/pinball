@@ -33,6 +33,10 @@ public:
     void primaryClick(const glm::vec3& worldPoint, const domain::Ray& ray);
     // Drag the selected element to follow the cursor.
     void dragSelectedTo(const glm::vec3& worldPoint);
+    // Create a wall spanning two floor points (drag-to-size).
+    void placeWall(const glm::vec3& a, const glm::vec3& b);
+    // Rotate the selected element about the up axis.
+    void rotateSelected(float deltaRadians);
     // Finish the in-progress rail (Enter).
     void confirm();
     void deleteSelected();

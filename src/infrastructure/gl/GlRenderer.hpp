@@ -43,6 +43,7 @@ private:
     };
     void pushQuad(float x, float y, float w, float h, const glm::vec4& color);
     void flushOverlay();
+    void drawMesh(const domain::RenderItem& item);
 
     std::string assetsRoot_;
     Shader scene_;

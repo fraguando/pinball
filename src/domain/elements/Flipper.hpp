@@ -14,6 +14,7 @@ public:
     glm::vec3 position() const override { return pivot_; }
     void setPosition(const glm::vec3& p) override { pivot_ = p; }
 
+    void rotate(float deltaRadians) override;
     bool raycastHit(const Ray& ray, float& t) const override;
     void appendCollisionShapes(std::vector<CollisionShape>& out) const override;
     void appendRenderItems(std::vector<RenderItem>& out) const override;

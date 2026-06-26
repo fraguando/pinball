@@ -22,13 +22,21 @@ struct InputFrame {
     bool leftFlipper{false};
     bool rightFlipper{false};
 
+    // Held: rotate the selected element (Q / E).
+    bool rotateLeft{false};
+    bool rotateRight{false};
+
+    // Held + released: spring plunger (hold Space to charge, release to fire).
+    bool launchHeld{false};
+    bool launchReleased{false};
+
     // Edges: discrete actions.
     int toolHotkey{0};          // 1..7 selected this frame, else 0
     bool deletePressed{false};
     bool savePressed{false};    // Ctrl+S
     bool loadPressed{false};    // Ctrl+O
     bool enterPressed{false};   // finalize rail / confirm
-    bool launchPressed{false};  // Space (plunger)
+    bool launchPressed{false};  // Space (edge)
     bool togglePlayPressed{false}; // Tab / P (enter play)
     bool escapePressed{false};  // back to editor
 

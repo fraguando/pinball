@@ -42,8 +42,8 @@ glm::vec3 Hole::capturePoint() const {
 }
 
 glm::vec3 Hole::ejectVelocity() const {
-    // Pop up and back up-table (-Z) to return the ball to play.
-    return glm::vec3(0.0f, 6.0f, -7.0f);
+    // Pop up and back up-table (-Z), hard enough to clear the cup and rejoin play.
+    return glm::vec3(0.0f, 10.0f, -14.0f);
 }
 
 void Hole::serialize(IArchive& ar) {

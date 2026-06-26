@@ -10,13 +10,19 @@ namespace pinball::domain {
 
 namespace {
 constexpr glm::vec3 kFlipperColor{0.95f, 0.85f, 0.25f};
-constexpr float kAngularSpeed = 14.0f; // rad/s
+constexpr float kAngularSpeed = 26.0f; // rad/s — snappy, hard-hitting flip
 } // namespace
 
 glm::vec3 Flipper::tip() const {
     glm::vec3 dir(std::cos(currentAngle_), 0.0f, std::sin(currentAngle_));
     glm::vec3 base(pivot_.x, kHeight, pivot_.z);
     return base + dir * length_;
+}
+
+void Flipper::rotate(float deltaRadians) {
+    restAngle_ += deltaRadians;
+    activeAngle_ += deltaRadians;
+    currentAngle_ += deltaRadians;
 }
 
 void Flipper::setSide(bool left) {
@@ -51,11 +57,11 @@ bool Flipper::raycastHit(const Ray& ray, float& t) const {
 void Flipper::appendCollisionShapes(std::vector<CollisionShape>& out) const {
     glm::vec3 base(pivot_.x, kHeight, pivot_.z);
     glm::vec3 t = tip();
-    CollisionShape s = CollisionShape::makeCapsule(base, t, barRadius_, 0.25f);
-    // Linear velocity of the bar's mid-point due to the swing: perpendicular to
-    // the bar in the XZ plane, magnitude = angularVel * (length/2).
+    CollisionShape s = CollisionShape::makeCapsule(base, t, barRadius_, 0.45f);
+    // Linear velocity near the bar tip due to the swing: perpendicular to the
+    // bar in the XZ plane. Using ~0.8*length makes the kick punchy.
     glm::vec3 perp(-std::sin(currentAngle_), 0.0f, std::cos(currentAngle_));
-    s.surfaceVel = perp * (angularVel_ * length_ * 0.5f);
+    s.surfaceVel = perp * (angularVel_ * length_ * 0.8f);
     out.push_back(s);
 }
 

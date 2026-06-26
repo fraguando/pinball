@@ -7,6 +7,9 @@ namespace pinball::domain {
 // A slider / rail: a 3D polyline the ball latches onto at the entry node and
 // rides to the exit node, then is released along the path tangent. Nodes may
 // vary in height, so a rising rail launches the ball into the air.
+//
+// Rendered as an open wireform: three thin rods (one below the ball, one on
+// each side) guide it, leaving the top open so the ball is always visible.
 class Rail final : public IBoardElement, public IGuidePath {
 public:
     Rail();
@@ -16,6 +19,7 @@ public:
     glm::vec3 position() const override;
     void setPosition(const glm::vec3& p) override;
 
+    void rotate(float deltaRadians) override;
     bool raycastHit(const Ray& ray, float& t) const override;
     void appendCollisionShapes(std::vector<CollisionShape>& out) const override;
     void appendRenderItems(std::vector<RenderItem>& out) const override;
@@ -32,8 +36,10 @@ public:
 
 private:
     std::vector<glm::vec3> nodes_;
-    float tubeRadius_{0.35f};
-    float travelSpeed_{10.0f};
+    float rodRadius_{0.09f};   // thickness of each guide rod
+    float sideOffset_{0.5f};   // half-gap between the two side rods
+    float bottomDrop_{0.42f};  // how far the bottom rod sits below the ball line
+    float travelSpeed_{16.0f}; // fast ride to match the livelier ball
     float captureRadius_{0.9f};
 };
 

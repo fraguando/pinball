@@ -24,6 +24,10 @@ public:
     virtual glm::vec3 position() const = 0;
     virtual void setPosition(const glm::vec3& p) = 0;
 
+    // Rotate the element about the up (Y) axis by `deltaRadians`. Elements that
+    // have no meaningful orientation (round posts/holes) may ignore it.
+    virtual void rotate(float deltaRadians) { (void)deltaRadians; }
+
     // Editor hit-testing: returns true (with hit distance) if the ray selects
     // this element. A bounding sphere is sufficient for editor picking.
     virtual bool raycastHit(const Ray& ray, float& t) const = 0;

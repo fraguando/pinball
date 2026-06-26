@@ -4,7 +4,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 
 namespace pinball::app {
 
@@ -78,12 +80,15 @@ void AppController::updateEdit(const InputFrame& in, float dt, IRenderer& r,
     if (in.loadPressed) handleButton(kLoad);
     if (in.togglePlayPressed) { enterPlay(); return; }
 
-    // Track cursor world point for ghost preview.
+    // Rotate the selected element with Q / E (held).
+    float rot = (in.rotateLeft ? 1.0f : 0.0f) - (in.rotateRight ? 1.0f : 0.0f);
+    if (rot != 0.0f) editor_.rotateSelected(rot * 1.8f * dt);
+
+    // Track cursor world point for ghost preview / wall sizing.
     cursorValid_ = worldPointAt(in.mousePos, r, cursorWorld_);
 
-    // Mouse interaction.
+    // Mouse press.
     if (in.leftPressed) {
-        // Palette buttons first.
         bool onUi = in.mousePos.y < kBarH;
         for (const auto& b : buttons) {
             if (in.mousePos.x >= b.x && in.mousePos.x <= b.x + b.w &&
@@ -96,16 +101,31 @@ void AppController::updateEdit(const InputFrame& in, float dt, IRenderer& r,
         if (!onUi) {
             glm::vec3 wp;
             if (worldPointAt(in.mousePos, r, wp)) {
-                editor_.primaryClick(wp, camera_.screenToRay(in.mousePos, r.widthPx(), r.heightPx()));
-                draggingWorld_ = (editor_.tool() == Tool::Select && editor_.selected());
+                if (editor_.tool() == Tool::Wall) {
+                    // Begin dragging out a wall from this point.
+                    wallDragging_ = true;
+                    wallStart_ = wp;
+                } else {
+                    editor_.primaryClick(wp, camera_.screenToRay(in.mousePos, r.widthPx(),
+                                                                 r.heightPx()));
+                    draggingWorld_ = (editor_.tool() == Tool::Select && editor_.selected());
+                }
             }
         }
     }
+
+    // Mouse drag (move selection).
     if (in.leftDown && draggingWorld_ && editor_.tool() == Tool::Select) {
         glm::vec3 wp;
         if (worldPointAt(in.mousePos, r, wp)) editor_.dragSelectedTo(wp);
     }
-    if (in.leftReleased) draggingWorld_ = false;
+
+    // Mouse release.
+    if (in.leftReleased) {
+        if (wallDragging_ && cursorValid_) editor_.placeWall(wallStart_, cursorWorld_);
+        wallDragging_ = false;
+        draggingWorld_ = false;
+    }
 }
 
 void AppController::handleButton(int id) {
@@ -139,8 +159,7 @@ void AppController::updatePlay(const InputFrame& in, float dt) {
     if (in.scroll != 0.0f) camera_.zoom(in.scroll * 2.0f);
 
     if (!sim_) return;
-    if (in.launchPressed) sim_->launch();
-    sim_->update(dt, in.leftFlipper, in.rightFlipper);
+    sim_->update(dt, in.leftFlipper, in.rightFlipper, in.launchHeld, in.launchReleased);
 }
 
 void AppController::enterPlay() {
@@ -178,12 +197,25 @@ void AppController::drawScene(IRenderer& r) {
             }
         }
 
-        // Ghost preview at the cursor for placement tools.
-        if (cursorValid_ && editor_.tool() != Tool::Select) {
+        // Live wall preview while dragging out its size.
+        if (wallDragging_ && cursorValid_) {
+            glm::vec3 a = wallStart_, b = cursorWorld_;
+            glm::vec3 mid = 0.5f * (a + b);
+            float dx = b.x - a.x, dz = b.z - a.z;
+            float len = std::max(0.6f, std::sqrt(dx * dx + dz * dz));
+            float yaw = std::atan2(-dz, dx);
+            glm::mat4 m = glm::translate(glm::mat4(1.0f), glm::vec3(mid.x, 0.6f, mid.z));
+            m = m * glm::mat4(rotationY(yaw));
+            m = glm::scale(m, glm::vec3(len, 1.2f, 0.5f));
+            items.push_back(RenderItem{MeshId::Cube, m, toolColor(Tool::Wall),
+                                       glm::vec3(0.2f), 0.5f});
+        } else if (cursorValid_ && editor_.tool() != Tool::Select) {
+            // Translucent ghost at the cursor for placement tools.
             glm::mat4 m = glm::scale(glm::translate(glm::mat4(1.0f),
                                                     cursorWorld_ + glm::vec3(0, 0.4f, 0)),
                                      glm::vec3(0.45f));
-            items.push_back(RenderItem{MeshId::Sphere, m, toolColor(editor_.tool())});
+            items.push_back(RenderItem{MeshId::Sphere, m, toolColor(editor_.tool()),
+                                       toolColor(editor_.tool()) * 0.4f, 0.55f});
         }
 
         // Selection marker.
@@ -204,9 +236,9 @@ void AppController::drawEditHud(IRenderer& r, const std::vector<Button>& buttons
         r.drawText(b.label, b.x + 8, b.y + (b.h - kTextH) * 0.5f, kTextH, kWhite);
     }
 
-    r.drawText("1-7 TOOLS   LCLICK PLACE   RDRAG ORBIT   WHEEL ZOOM   "
-               "ENTER FINISH RAIL   DEL REMOVE   TAB PLAY",
-               10, static_cast<float>(r.heightPx()) - 24, 14, kHint);
+    r.drawText("1-7 TOOLS   LCLICK PLACE   DRAG WALL TO SIZE   Q/E ROTATE   "
+               "RDRAG ORBIT   WHEEL ZOOM   ENTER FINISH RAIL   DEL REMOVE   TAB PLAY",
+               10, static_cast<float>(r.heightPx()) - 24, 13, kHint);
 
     if (clock_.now() < statusUntil_ && !status_.empty())
         r.drawText(status_, 10, kBarH + 8, 20, glm::vec4(0.5f, 0.95f, 0.6f, 1.0f));
@@ -221,7 +253,9 @@ void AppController::drawPlayHud(IRenderer& r) {
     std::string state;
     if (sim_) {
         switch (sim_->state()) {
-            case PinballSimulation::State::Launch:   state = "PRESS SPACE TO LAUNCH"; break;
+            case PinballSimulation::State::Launch:
+                state = "HOLD SPACE TO CHARGE SPRING   RELEASE TO LAUNCH";
+                break;
             case PinballSimulation::State::Captured: state = "BALL CAPTURED"; break;
             case PinballSimulation::State::Guided:   state = "ON THE RAIL"; break;
             default: break;
@@ -232,8 +266,18 @@ void AppController::drawPlayHud(IRenderer& r) {
         r.drawText(state, (r.widthPx() - w) * 0.5f, 12, 18, glm::vec4(1.0f, 0.85f, 0.4f, 1.0f));
     }
 
-    r.drawText("LEFT/RIGHT ARROWS FLIPPERS   SPACE LAUNCH   RDRAG ORBIT   ESC EDIT",
-               10, static_cast<float>(r.heightPx()) - 24, 14, kHint);
+    // Spring charge meter while waiting to launch.
+    if (sim_ && sim_->state() == PinballSimulation::State::Launch) {
+        float charge = sim_->charge();
+        float barW = 240.0f, barH = 14.0f;
+        float bx = (r.widthPx() - barW) * 0.5f, by = kBarH + 10.0f;
+        r.drawRect(bx, by, barW, barH, glm::vec4(0.1f, 0.1f, 0.13f, 0.85f));
+        r.drawRect(bx, by, barW * charge, barH,
+                   glm::vec4(1.0f, 0.55f + 0.4f * charge, 0.1f, 0.95f));
+    }
+
+    r.drawText("LEFT/RIGHT ARROWS FLIPPERS   HOLD+RELEASE SPACE LAUNCH   RDRAG ORBIT   ESC EDIT",
+               10, static_cast<float>(r.heightPx()) - 24, 13, kHint);
 }
 
 // --------------------------------------------------------------------------

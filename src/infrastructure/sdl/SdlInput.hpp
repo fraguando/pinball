@@ -14,6 +14,7 @@ public:
 private:
     bool prevLeft_{false};
     bool prevRight_{false};
+    bool prevSpace_{false};
     glm::vec2 prevMouse_{0.0f};
     bool firstPoll_{true};
 };
