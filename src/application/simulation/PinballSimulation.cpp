@@ -17,10 +17,12 @@ namespace {
 
 // Tilted gravity: presses the ball onto the floor (-Y) and pulls it hard toward
 // the front/drain (+Z). Strong values give the lively, fast pinball feel.
-const glm::vec3 kGravity{0.0f, -45.0f, 18.0f};
-constexpr float kLinearDamping = 0.04f;  // low rolling resistance => keeps speed
-constexpr float kMaxSpeed = 130.0f;
-constexpr float kFriction = 0.04f;       // tangential friction on bounces
+const glm::vec3 kGravity{0.0f, -55.0f, 30.0f};
+// Near-zero damping so the ball keeps and accumulates speed over time (bumpers
+// add energy faster than it bleeds away).
+constexpr float kLinearDamping = 0.003f;
+constexpr float kMaxSpeed = 420.0f;      // high cap so launches/accumulation aren't clipped
+constexpr float kFriction = 0.02f;       // tangential friction on bounces
 constexpr float kChargeTime = 0.55f;     // seconds to fully charge the spring
 constexpr float kCaptureCooldown = 0.6f; // seconds before a hole can re-capture
 
@@ -96,8 +98,10 @@ void PinballSimulation::update(float dt, bool leftFlipper, bool rightFlipper,
         case State::Free: {
             // Substep so a fast ball can't tunnel through thin walls/flippers.
             float speed = glm::length(ball_.velocity);
+            // More substeps at high speed so the fast ball can't tunnel through
+            // thin walls/flippers.
             int steps = std::clamp(
-                static_cast<int>(std::ceil(speed * dt / (ball_.radius * 0.5f))), 1, 8);
+                static_cast<int>(std::ceil(speed * dt / (ball_.radius * 0.4f))), 1, 32);
             float sub = dt / steps;
             for (int i = 0; i < steps; ++i) {
                 integrate(sub);

@@ -59,9 +59,9 @@ void Flipper::appendCollisionShapes(std::vector<CollisionShape>& out) const {
     glm::vec3 t = tip();
     CollisionShape s = CollisionShape::makeCapsule(base, t, barRadius_, 0.45f);
     // Linear velocity near the bar tip due to the swing: perpendicular to the
-    // bar in the XZ plane. Using ~0.8*length makes the kick punchy.
+    // bar in the XZ plane. The 2.4*length factor makes the kick ~3x as strong.
     glm::vec3 perp(-std::sin(currentAngle_), 0.0f, std::cos(currentAngle_));
-    s.surfaceVel = perp * (angularVel_ * length_ * 0.8f);
+    s.surfaceVel = perp * (angularVel_ * length_ * 2.4f);
     out.push_back(s);
 }
 

@@ -34,8 +34,8 @@ private:
     glm::vec3 position_{0.0f};
     float yaw_{0.0f};
     float compression_{0.0f}; // runtime, not serialized
-    float minSpeed_{22.0f};
-    float maxSpeed_{52.0f};
+    float minSpeed_{120.0f};   // ~5x the old launch; a hard plunger shot
+    float maxSpeed_{280.0f};
 };
 
 } // namespace pinball::domain
